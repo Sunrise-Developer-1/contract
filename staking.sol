@@ -1,5 +1,6 @@
-
-// SPDX-License-Identifier: MIT
+/**
+ *Submitted for verification at Etherscan.io on 2024-06-06
+*/
 
 // File: @openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol
 
@@ -30,7 +31,7 @@ interface IERC20Upgradeable {
     function transfer(address to, uint256 amount) external returns (bool);
 
     function approve(address spender, uint256 amount) external returns (bool);
-
+    function allowance(address owner, address spender) external view returns (uint256);
 
     function transferFrom(
         address from,
@@ -51,6 +52,8 @@ interface IERC20Upgradeable {
      * a call to {approve}. `value` is the new allowance.
      */
     event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    
 }
 
 // File: CS.sol
@@ -318,9 +321,9 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
-    }
+    // function renounceOwnership() public virtual onlyOwner {
+    //     _transferOwnership(address(0));
+    // }
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
@@ -758,10 +761,156 @@ abstract contract Context {
         return msg.data;
     }
 } 
+interface IERC20PermitUpgradeable {
+    /**
+     * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
+     * given ``owner``'s signed approval.
+     *
+     * IMPORTANT: The same issues {IERC20-approve} has related to transaction
+     * ordering also apply here.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `deadline` must be a timestamp in the future.
+     * - `v`, `r` and `s` must be a valid `secp256k1` signature from `owner`
+     * over the EIP712-formatted function arguments.
+     * - the signature must use ``owner``'s current nonce (see {nonces}).
+     *
+     * For more information on the signature format, see the
+     * https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+     * section].
+     */
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
+    /**
+     * @dev Returns the current nonce for `owner`. This value must be
+     * included whenever a signature is generated for {permit}.
+     *
+     * Every successful call to {permit} increases ``owner``'s nonce by one. This
+     * prevents a signature from being used multiple times.
+     */
+    function nonces(address owner) external view returns (uint256);
+
+    /**
+     * @dev Returns the domain separator used in the encoding of the signature for {permit}, as defined by {EIP712}.
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+}
+
+library SafeERC20Upgradeable {
+    using AddressUpgradeable for address;
+
+    function safeTransfer(
+        IERC20Upgradeable token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+    }
+
+    function safeTransferFrom(
+        IERC20Upgradeable token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
+    }
+
+    /**
+     * @dev Deprecated. This function has issues similar to the ones found in
+     * {IERC20-approve}, and its usage is discouraged.
+     *
+     * Whenever possible, use {safeIncreaseAllowance} and
+     * {safeDecreaseAllowance} instead.
+     */
+    function safeApprove(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        // safeApprove should only be called when setting an initial allowance,
+        // or when resetting it to zero. To increase and decrease it, use
+        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
+    }
+
+    function safeIncreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
+
+    function safeDecreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        unchecked {
+            uint256 oldAllowance = token.allowance(address(this), spender);
+            require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
+            uint256 newAllowance = oldAllowance - value;
+            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+        }
+    }
+
+    function safePermit(
+        IERC20PermitUpgradeable token,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal {
+        uint256 nonceBefore = token.nonces(owner);
+        token.permit(owner, spender, value, deadline, v, r, s);
+        uint256 nonceAfter = token.nonces(owner);
+        require(nonceAfter == nonceBefore + 1, "SafeERC20: permit did not succeed");
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     */
+    function _callOptionalReturn(IERC20Upgradeable token, bytes memory data) private {
+        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
+        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // the target address contains contract code and also asserts for success in the low-level call.
+
+        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
+        if (returndata.length > 0) {
+            // Return data is optional
+            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
+        }
+    }
+}
 pragma solidity ^0.8.15;
 
-    contract Staking is OwnableUpgradeable,whitelistChecker,ReentrancyGuardUpgradeable {
+    contract Devvestaking is OwnableUpgradeable,whitelistChecker,ReentrancyGuardUpgradeable {
+        using SafeERC20Upgradeable for IERC20Upgradeable;
         IERC20Upgradeable  public token;
         address public signer;
         uint public totalStaking;
@@ -779,18 +928,32 @@ pragma solidity ^0.8.15;
         mapping(address => uint256) public StakesPerUser;
         mapping(address => uint256) public StakesCount;
         mapping (address => uint) public stakeTime;
+        address private pendingOwner;
         event unstakeDevve (address _user, uint _amount);
         event rewards(address _user, uint _amount);
+        event setTokenAddress(address _user);
+        event setSignerAddress(address _user);
         event Stake(address _sender, address _recipient,uint _amount,uint id,uint locktype);
+        event OwnershipTransferInitiated(address indexed currentOwner, address indexed pendingOwner);
 
+       // Function to Sets the address of the ERC-20 token contract
         function setToken(address _address) external onlyOwner{
+            require(_address != address(0),"Invalid Address");
             token = IERC20Upgradeable(_address);
+            emit setTokenAddress(_address);
         }
+        //  Allows a user to stake a specified amount of tokens in the contract.
         function stakeTokens(uint _amount,uint _locktype,Signer memory _signer) external {    
-            require(msg.sender== _signer.userAddress,"Not a User");  
+            require(msg.sender== _signer.userAddress,"Not a Valid Address");  
             require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
             require (getSigner(_signer) == signer,'!Signer'); 
             require(StakesCount[msg.sender] == 0, "Already Staked");
+            require(_locktype<5,"Invalid Locktype");
+            usedNonce[msg.sender][_signer.timestamp]=true;
+           
+            if(_amount < 1000*10**18){
+              require(_locktype == 1,"Invalid Lock Time");
+            }
             stakeInfo memory stake;
             stake.stakeTime = block.timestamp;
             stake.stakeAmount = _amount;
@@ -801,78 +964,104 @@ pragma solidity ^0.8.15;
             StakesCount[msg.sender] += 1;
             stake.id = StakesPerUser[msg.sender];
             userStakeInformation[msg.sender].push(stake);
-            token.transferFrom(msg.sender,address(this), _amount);
+            token.safeTransferFrom(msg.sender,address(this), _amount);
             emit Stake(msg.sender, address(this),_amount,stake.id,stake.stakelocktype);
         }
+        // Allows a user to upgrade their existing staked tokens to a new level or format.
         function upgradeStakeTokens(uint poolId,uint _amount,uint _locktype,Signer memory _signer) external {  
-           require(msg.sender== _signer.userAddress,"Not a User");  
-           require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
-           require (getSigner(_signer) == signer,'!Signer'); 
-           require(StakesCount[msg.sender]!=0,"Stake Tokens");  
-           require(userStakeInformation[msg.sender][poolId].stakelocktype < _locktype || _locktype == 4||_locktype == 1 || block.timestamp>=lockTime[userStakeInformation[msg.sender][poolId].stakelocktype]+userStakeInformation[msg.sender][poolId].stakeTime,"Stake Tokens");
-           uint totalamount =  userStakeInformation[msg.sender][poolId].stakeAmount + _amount ;
-            if(_locktype == 1){
-                require(totalamount<=1000*10**18 ,"max amount reached");
+            require(msg.sender== _signer.userAddress,"Not a Valid Address");  
+            require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
+            require (getSigner(_signer) == signer,'!Signer'); 
+            require(StakesCount[msg.sender]!=0,"No Exitsting Stake");  
+            require(_locktype<5,"Invalid Locktype");
+            require(userStakeInformation[msg.sender][poolId].stakelocktype < _locktype || _locktype == 4||_locktype == 1 || block.timestamp>=lockTime[userStakeInformation[msg.sender][poolId].stakelocktype]+userStakeInformation[msg.sender][poolId].stakeTime,"Stake Tokens");
+            usedNonce[msg.sender][_signer.timestamp]=true;
+            uint totalamount =  userStakeInformation[msg.sender][poolId].stakeAmount + _amount ;
+            if(totalamount < 1000*10**18){
+              require(_locktype == 1,"Invalid Lock Time");
             }
             totalStaking +=_amount;
             userStakeInformation[msg.sender][poolId].stakeTime =block.timestamp;
-                userStakeInformation[msg.sender][poolId].stakeAmount +=_amount;
+            userStakeInformation[msg.sender][poolId].stakeAmount +=_amount;
             userStakeInformation[msg.sender][poolId].stakelocktype =_locktype;
-            token.transferFrom(msg.sender,address(this), _amount);
+            token.safeTransferFrom(msg.sender,address(this), _amount);
             emit Stake(msg.sender, address(this),userStakeInformation[msg.sender][poolId].stakeAmount,userStakeInformation[msg.sender][poolId].id,_locktype);
         }
-        function stakeLength(address _user) external view returns(uint){
-            return userStakeInformation[_user].length;
-        }
+        // Function Allows a user to withdraw a specified amount of their staked tokens.
         function unStake(uint poolId,Signer memory _signer) external nonReentrant{
-            require(msg.sender== _signer.userAddress,"Not a User");  
+            require(msg.sender== _signer.userAddress,"Not a Valid Address");  
             require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
             require (getSigner(_signer) == signer,'!Signer');    
             require(block.timestamp>=lockTime[userStakeInformation[msg.sender][poolId].stakelocktype]+userStakeInformation[msg.sender][poolId].stakeTime,"Lock Period Not yet Completed");
-
             uint _amount = (userStakeInformation[msg.sender][poolId].stakeAmount) ;
+            require(_amount>0,"insufficient Amount");
             usedNonce[msg.sender][_signer.timestamp]=true;
             totalStaking-=_amount;
             totalNumberofStakers -= 1;
             StakesCount[msg.sender] -= 1;
-            token.transfer (msg.sender, _amount);
             delete userStakeInformation[msg.sender][poolId];
+            token.safeTransfer (msg.sender, _amount);
             emit unstakeDevve(msg.sender, _amount);
         }
+        // Allows an admin to forcefully withdraw a specified amount of a user's staked tokens
         function unStakeByAdmin(uint poolId,address _user) external nonReentrant onlyOwner{
             uint _amount = (userStakeInformation[_user][poolId].stakeAmount) ;
+            require(_amount>0,"insufficient Amount");
             totalStaking-=_amount;
             totalNumberofStakers -= 1;
             StakesCount[_user] -= 1;
-            token.transfer (_user, _amount);
             delete userStakeInformation[_user][poolId];
+            token.safeTransfer (_user, _amount);
             emit unstakeDevve(_user, _amount);
         }
         function initialize(address _token,uint[] memory _setLocktime) external initializer{
-             token=IERC20Upgradeable(_token);
-             __Ownable_init();
-             signer=msg.sender;
-             lockTime=_setLocktime;
+            token=IERC20Upgradeable(_token);
+            __Ownable_init();
+            __ReentrancyGuard_init();
+            signer=msg.sender;
+            lockTime=_setLocktime;
         }
+        //Sets the address of the authorized signer
         function setSigner(address _signer) external onlyOwner{
+            require(_signer != address(0),"Invalid Address");
             signer=_signer;
+            emit setSignerAddress(_signer);
         }
+        // Sets the time lock periods for staking.
         function setTimeLocks(uint[] memory _timeLock)external onlyOwner{
           lockTime=_timeLock;
         }
+        //Allows an admin to withdraw the total amount of staked funds from the contract
         function withDrawFunds(address _tokenAddress, uint amount, bool inETH) external onlyOwner {
             if (!inETH) {
-                token = IERC20Upgradeable(_tokenAddress);
-                require(token.balanceOf(address(this))>0,'!Balance');
-                token.transfer(owner(), amount);
+                IERC20Upgradeable _tokens = IERC20Upgradeable(_tokenAddress) ;
+                require(_tokens.balanceOf(address(this))>0,'Nil Balance');
+                _tokens.safeTransfer(owner(), amount);
             }
             else {
-                require (address(this).balance> 0,'!Balance');
+                require (address(this).balance> 0,'Nil Balance');
                 payable (owner()).transfer(address(this).balance);
             }
         }
-
+        //Retrieves the total balance held by the contract.
         function totalContractBalance()  public view returns(uint){
            return token.balanceOf(address(this));
+        }
+
+        modifier onlyPendingOwner() {
+            require(msg.sender == pendingOwner, "Caller is not the pending owner");
+            _;
+        }
+        // Function to initiate ownership transfer
+        function initiateOwnershipTransfer(address newOwner) external onlyOwner {
+            require(newOwner != address(0), "Invalid Wallet Address");
+            pendingOwner = newOwner;
+            emit OwnershipTransferInitiated(owner(), pendingOwner);
+        }
+
+        // Function to confirm ownership transfer
+        function confirmOwnershipTransfer() external onlyPendingOwner {
+            _transferOwnership(pendingOwner);
+            pendingOwner = address(0); // Reset pending owner
         }
     }
