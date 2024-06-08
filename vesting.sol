@@ -1,4 +1,8 @@
 /**
+ *Submitted for verification at Etherscan.io on 2024-06-08
+*/
+
+/**
  *Submitted for verification at Etherscan.io on 2024-05-13
 */
 
@@ -822,6 +826,97 @@ abstract contract Initializable {
         return _initializing;
     }
 }
+
+abstract contract ContextUpgradeable is Initializable {
+    function __Context_init() internal onlyInitializing {
+    }
+
+    function __Context_init_unchained() internal onlyInitializing {
+    }
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
+    }
+
+    function _msgData() internal view virtual returns (bytes calldata) {
+        return msg.data;
+    }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[50] private __gap;
+}
+abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    function __Ownable_init() internal onlyInitializing {
+        __Ownable_init_unchained();
+    }
+
+    function __Ownable_init_unchained() internal onlyInitializing {
+        _transferOwnership(_msgSender());
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    // function renounceOwnership() public virtual onlyOwner {
+    //     _transferOwnership(address(0));
+    // }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) internal  virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _transferOwnership(newOwner);
+        
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Internal function without access restriction.
+     */
+    function _transferOwnership(address newOwner) internal virtual {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
+}
 abstract contract ReentrancyGuardUpgradeable is Initializable {
     // Booleans are more expensive than uint256 or any type that takes up a full
     // word because each write operation emits an extra SLOAD to first read the
@@ -881,7 +976,128 @@ abstract contract ReentrancyGuardUpgradeable is Initializable {
      */
     uint256[49] private __gap;
 }
+interface IERC20PermitUpgradeable {
+    /**
+     * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
+     * given ``owner``'s signed approval.
+     *
+     * IMPORTANT: The same issues {IERC20-approve} has related to transaction
+     * ordering also apply here.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `deadline` must be a timestamp in the future.
+     * - `v`, `r` and `s` must be a valid `secp256k1` signature from `owner`
+     * over the EIP712-formatted function arguments.
+     * - the signature must use ``owner``'s current nonce (see {nonces}).
+     *
+     * For more information on the signature format, see the
+     * https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+     * section].
+     */
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
+    /**
+     * @dev Returns the current nonce for `owner`. This value must be
+     * included whenever a signature is generated for {permit}.
+     *
+     * Every successful call to {permit} increases ``owner``'s nonce by one. This
+     * prevents a signature from being used multiple times.
+     */
+    function nonces(address owner) external view returns (uint256);
+
+    /**
+     * @dev Returns the domain separator used in the encoding of the signature for {permit}, as defined by {EIP712}.
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+}
+
+interface IERC20Upgradeable {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
 pragma solidity ^0.8.12;
 
 contract whitelistChecker is EIP712 {
@@ -927,11 +1143,108 @@ contract whitelistChecker is EIP712 {
     }
 }
 
-contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
-    IBEP20 public token;
-    address public projectOwner;
+library SafeERC20Upgradeable {
+    using AddressUpgradeable for address;
+
+    function safeTransfer(
+        IERC20Upgradeable token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+    }
+
+    function safeTransferFrom(
+        IERC20Upgradeable token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
+    }
+
+    /**
+     * @dev Deprecated. This function has issues similar to the ones found in
+     * {IERC20-approve}, and its usage is discouraged.
+     *
+     * Whenever possible, use {safeIncreaseAllowance} and
+     * {safeDecreaseAllowance} instead.
+     */
+    function safeApprove(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        // safeApprove should only be called when setting an initial allowance,
+        // or when resetting it to zero. To increase and decrease it, use
+        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
+    }
+
+    function safeIncreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
+
+    function safeDecreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        unchecked {
+            uint256 oldAllowance = token.allowance(address(this), spender);
+            require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
+            uint256 newAllowance = oldAllowance - value;
+            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+        }
+    }
+
+    function safePermit(
+        IERC20PermitUpgradeable token,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal {
+        uint256 nonceBefore = token.nonces(owner);
+        token.permit(owner, spender, value, deadline, v, r, s);
+        uint256 nonceAfter = token.nonces(owner);
+        require(nonceAfter == nonceBefore + 1, "SafeERC20: permit did not succeed");
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     */
+    function _callOptionalReturn(IERC20Upgradeable token, bytes memory data) private {
+        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
+        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // the target address contains contract code and also asserts for success in the low-level call.
+
+        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
+        if (returndata.length > 0) {
+            // Return data is optional
+            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
+        }
+    }
+}
+contract FiasPublicVesting is OwnableUpgradeable, whitelistChecker ,ReentrancyGuardUpgradeable{
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    IERC20Upgradeable public token;
     address public signer;
-    address public adminWallet;
     bool private isStart;
     bool private iscollect;
     bool private ischeck;
@@ -941,23 +1254,21 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
     uint256 public totalAirdropAllocationamount;
     uint256 public vestingEndTime;
 
-    // mapping(uint256 => bool) private usedNonce;
     mapping(address=>mapping(uint=>bool)) public usedNonce;
-
     mapping (address => bool) public isUserAdded;
-
     mapping (address => bool) public isAirdropUserAdded;
+    mapping(address => InvestorDetails) public Investors;
+    address private pendingOwner;
 
     uint256 day;
     event TokenWithdraw(address indexed buyer, uint256 value,uint256 id);
     event RecoverToken(address indexed token, uint256 indexed amount);
     event RemoveUser(address _userAddress);
     event InvestorAddress(address account, uint256 _amout);
+    event startDate(uint256 date);
+    event setTokens(address _userAddress);
+    event OwnershipTransferInitiated(address indexed currentOwner, address indexed pendingOwner);
 
-    modifier onlyAdmin() {
-        require(msg.sender == adminWallet, "Caller is not Admin");
-        _;
-    }
     modifier setDate() {
         require(isStart == true, "wait for start date");
         _;
@@ -971,11 +1282,6 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
         _;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == projectOwner, "Not a ProjectOwner");
-        _;
-    }
-
     uint256 public TGEStartDate;
     uint256 public lockEndDate;
     uint256 public totalLinearUnits;
@@ -985,49 +1291,11 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
     uint256 private middleTime;
     uint256 private linearTime;
 
-    uint256 vestingPeriodDays = 12 * 30; // 10 months * 30 days
+    uint256 vestingPeriodDays = 12 * 30; // 12 months * 30 days
 
     receive() external payable {}
 
-    constructor(
-        uint256 _totalLinearUnits,
-        uint256 timeBetweenUnits,
-        uint256 linearStartDate,
-        uint256 _startDate,
-        address _tokenAddress,
-        uint256 _initialPercentage,
-        uint256 _intermediatePercentage,
-        uint256 _intermediateTime,
-        address _admin
-    ) {
-        require(_tokenAddress != address(0));
-        middleTime = _intermediateTime;
-        linearTime = linearStartDate;
-        token = IBEP20(_tokenAddress);
-        totalLinearUnits = _totalLinearUnits;
-        adminWallet = _admin;
-        day = timeBetweenUnits * 10 minutes;
-        TGEStartDate = _startDate;
-        initialPercentage = _initialPercentage;
-        intermediaryPercentage = _intermediatePercentage;
-        intermediateTime = _startDate + middleTime * 10 minutes;
-        lockEndDate = intermediateTime + linearTime * 10 minutes;
-        isStart = true;
-        projectOwner = _admin;
-        signer = _admin;
-        vestingEndTime = lockEndDate + timeBetweenUnits * 10 minutes;
-    }
-
-    /* Withdraw the contract's balance to owner wallet*/
-    function withdrawMatic() public onlyAdmin {
-        payable(adminWallet).transfer(address(this).balance);
-    }
-
-    function getInvestorDetails(address _addr)
-        public
-        view
-        returns (InvestorDetails memory)
-    {
+    function getInvestorDetails(address _addr)public view returns (InvestorDetails memory) {
         return Investors[_addr];
     }
 
@@ -1035,7 +1303,7 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
         return token.balanceOf(address(this));
     }
 
-    function setSigner(address _addr) public onlyAdmin {
+    function setSigner(address _addr) public onlyOwner {
         signer = _addr;
     }
 
@@ -1055,41 +1323,20 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
         uint256 reminingUnitsToVest;
         uint256 tokensPerUnit;
         uint256 vestingBalance;
-        uint256 airdropvestingBalance;
-        uint256 airdropTokensPerDay;
         uint256 lastWithdrawalTimestamp;
-        uint256 airdropVestingDays;
         uint256 initialAmount;
         uint256 nextAmount;
-        uint256 airdroptotalBalance;
         bool isInitialAmountClaimed;
     }
-    struct AirDropDetails {
-        uint256 timeDifference;
-        uint256 lastVestedTime;
-        uint256 airdropvestingBalance;
-        uint256 airdropTokensPerDay;
-        uint256 lastWithdrawalTimestamp;
-        uint256 airdropVestingDays;
-        uint256 airdroptotalBalance;
-        bool isInitialAmountClaimed;
-    }
-    mapping(address => InvestorDetails) public Investors;
-    mapping(address => AirDropDetails) public AirDrops;
-
-
-
+  
+    // Adds details of a new investor 
     function addInvestorDetails(uint amount, Signer memory _signer ) public nonReentrant{
         require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
-        require(getSigner(_signer) == signer, "!Signer");
-
-        require (!isUserAdded[msg.sender],'User already whitelisted');
-
+        require(getSigner(_signer) == signer, "Invalid Signer");
+        require (!isUserAdded[msg.sender],'User already added');
         usedNonce[msg.sender][_signer.timestamp]=true;
         isUserAdded[msg.sender] = true;
-
         InvestorDetails memory investor;
-        // investor.totalBalance = (amount) * (10**18);
         investor.totalBalance = amount;
         investor.vestingBalance = investor.totalBalance;
         investor.reminingUnitsToVest = totalLinearUnits;
@@ -1101,14 +1348,14 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
         }
         Investors[_signer.userAddress] = investor; 
         totalAllocatedamount += investor.totalBalance;
+        emit InvestorAddress(msg.sender,amount);
     }
-
-    function addInvestorsbyadmin(Investor[] memory vest) external onlyAdmin nonReentrant{
+    // Allows the admin to add multiple investors
+    function addInvestorsbyadmin(Investor[] memory vest) external onlyOwner nonReentrant{
+        require(vest.length<=50,"Max Length Reached");
         for (uint i = 0;i < vest.length;i++) {
-
-            require (!isUserAdded[vest[i].account],'User already whitelisted');
+            require (!isUserAdded[vest[i].account],'User already added');
             isUserAdded[vest[i].account] = true;
-            
             InvestorDetails memory investor;
             investor.totalBalance = vest[i].amount;
             investor.vestingBalance = investor.totalBalance;
@@ -1124,68 +1371,27 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
             emit InvestorAddress(vest[i].account,vest[i].amount);
         }
     }
-
+    //  Removes a single user from a specific project.
     function removeSingleUser(address _userAddress)public onlyOwner{
         require(isUserAdded[_userAddress],"Not a Investor");
         delete Investors[_userAddress];
         isUserAdded[_userAddress]=false;
         emit RemoveUser(_userAddress);
     }
-
-    function addAirdrop(uint airdropamount, Signer memory _signer ) public nonReentrant {
-      
-        require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
-        require(getSigner(_signer) == signer, "!Signer");
-        usedNonce[msg.sender][_signer.timestamp]=true;
-
-        require (!isAirdropUserAdded[msg.sender],'User already whitelisted');
-        isAirdropUserAdded[msg.sender] = true;
-        
-        AirDropDetails memory investor;
-        investor.airdroptotalBalance = airdropamount;
-        investor.airdropvestingBalance = investor.airdroptotalBalance;
-        investor.airdropVestingDays = vestingPeriodDays;
-        investor.airdropTokensPerDay = investor.airdroptotalBalance / vestingPeriodDays;
-        investor.lastWithdrawalTimestamp = TGEStartDate;
-        AirDrops[_signer.userAddress] = investor; 
-        totalAirdropAllocationamount += investor.airdroptotalBalance;
-    }
-
-    function withdrawdevvefunction(Signer memory _signer) external nonReentrant {
+    //Allows the withdrawal of a specified amount of tokens from the contract.
+    function withdrawTokenfunction(Signer memory _signer) external nonReentrant{
         require(isStart = true, "wait for start date");
         require(block.timestamp >= TGEStartDate, "TGE has not started yet");
         require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
-        require(getSigner(_signer) == signer, "!Signer");
+        require(getSigner(_signer) == signer, "Invalid Signer");
         usedNonce[msg.sender][_signer.timestamp]=true;
         uint256 id = 1;
         uint256 lineartoken = withdrawTokens();
         uint256 totaltokens = lineartoken;// airdroptoekns + lineartoken;
         require(totaltokens > 0, "wait for start date");
-   
-        
-        token.transfer(msg.sender, totaltokens);
+        token.safeTransfer(msg.sender, totaltokens);
         emit TokenWithdraw(msg.sender, totaltokens,id);
     }
-
-    function withdrawAirdropfunction(Signer memory _signer) external nonReentrant {
-        require(isStart = true, "wait for start date");
-        require(block.timestamp >= TGEStartDate, "TGE has not started yet");
-        require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
-        require(getSigner(_signer) == signer, "!Signer");
-           
-        usedNonce[msg.sender][_signer.timestamp]=true;
-
-        uint256 id = 2;
-        uint256 airdroptoekns = withdrawAirdropTokens();
-
-        uint256 totaltokens = airdroptoekns;// airdroptoekns + lineartoken;
-
-        require(totaltokens > 0, "wait for start date");
-
-        token.transfer(msg.sender, totaltokens);
-        emit TokenWithdraw(msg.sender, totaltokens, id);
-    }
-
     function withdrawTokens() internal setDate returns (uint256) {
 
         if (Investors[msg.sender].isInitialAmountClaimed) {
@@ -1286,77 +1492,16 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
             }
         }
     }
-
- 
-
-    function withdrawAirdropTokens() private returns(uint256) {
-        
-        AirDropDetails storage investor = AirDrops[msg.sender];
-        require(investor.airdropvestingBalance > 0, "No airdrop tokens to withdraw");
-        require(block.timestamp >= TGEStartDate, "TGE has not started yet");
-
-        uint256 elapsedTime = block.timestamp - investor.lastWithdrawalTimestamp;
-        uint256 minutesElapsed = elapsedTime / 10 minutes; // Convert seconds to minutes
-          uint256 tokensToWithdraw;
-        if(minutesElapsed >= 1){
-             tokensToWithdraw = minutesElapsed * investor.airdropTokensPerDay; // Adjust for minutes
-            
-            if (tokensToWithdraw > investor.airdropvestingBalance) {
-                tokensToWithdraw = investor.airdropvestingBalance;
-                investor.airdropvestingBalance = 0; // Set balance to 0
-            } else {
-                investor.airdropvestingBalance -= tokensToWithdraw;
-            }
-             investor.lastWithdrawalTimestamp = block.timestamp;
-        }else{
-             tokensToWithdraw = 0;
-        }
-        
-        return tokensToWithdraw;
-    }
-
-    function getCurrentAirdropBalance(address investorAddress) public view returns (uint256){
-        AirDropDetails storage investor = AirDrops[investorAddress];
-        require(investor.airdropvestingBalance > 0,"No airdrop tokens available");
-        require(block.timestamp >= TGEStartDate, "TGE has not started yet");
-      
-
-        uint256 elapsedTime = block.timestamp - investor.lastWithdrawalTimestamp;
-        uint256 minutesElapsed = elapsedTime / 10 minutes; // Convert seconds to minutes
-          uint256 tokensToWithdraw;
-        if(minutesElapsed >= 1){
-             tokensToWithdraw = minutesElapsed * investor.airdropTokensPerDay; // Adjust for minutes
-        }else{
-             tokensToWithdraw = 0;
-        }
-        
-        if (tokensToWithdraw > investor.airdropvestingBalance) {
-            tokensToWithdraw = investor.airdropvestingBalance;
-        }
-
-        return tokensToWithdraw;
-    }
-
+    // Allows the deposit of a specified amount of tokens into the contract.
     function depositToken(uint256 amount) public {
-        token.transferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
         totalDepositTokens += amount;
     }
-
-    function recoverTokens(
-        address _token,
-        address _userAddress,
-        uint256 amount
-    ) public onlyAdmin {
-        IBEP20(_token).transfer(_userAddress, amount);
+    function recoverTokens(address _token,address _userAddress,uint256 amount) public onlyOwner {
+        IERC20Upgradeable(_token).transfer(_userAddress, amount);
         emit RecoverToken(_token, amount);
     }
-
-    function transferOwnership(address _addr) external onlyAdmin {
-        adminWallet = _addr;
-    }
-
-    function getAvailableBalance(address _addr)public view returns (uint256,uint256,uint256)
-    {
+    function getAvailableBalance(address _addr)public view returns (uint256,uint256,uint256) {
         if (Investors[_addr].isInitialAmountClaimed) {
 
             if (block.timestamp >= lockEndDate) {
@@ -1425,15 +1570,56 @@ contract devveVesting is whitelistChecker ,ReentrancyGuardUpgradeable{
             }
         }
     }
-
-    function setStartDate(uint256 _startDate) external onlyAdmin {
+    //Sets the vesting start date
+    function setStartDate(uint256 _startDate) external onlyOwner {
         TGEStartDate = _startDate;
         intermediateTime = _startDate + middleTime * 10 minutes;
         lockEndDate = intermediateTime + linearTime * 10 minutes;
+        emit startDate (_startDate);
     }
-
-    function setToken(address _token) external onlyAdmin {
-        token = IBEP20(_token);
+    //Sets the address of the ERC-20 token contract to be used by the platform.
+    function setToken(address _token) external onlyOwner {
+        require(_token != address(0), "Invalid Token Address");
+        token = IERC20Upgradeable(_token);
+        emit setTokens (_token);
     }
-
+    function initialize(address Signer,uint256 _totalLinearUnits,uint256 timeBetweenUnits,
+        uint256 linearStartDate,
+        uint256 _startDate,
+        address _tokenAddress,
+        uint256 _initialPercentage,
+        uint256 _intermediatePercentage,
+        uint256 _intermediateTime) external initializer{
+        require(_tokenAddress != address(0));
+        middleTime = _intermediateTime;
+        linearTime = linearStartDate;
+        token = IERC20Upgradeable(_tokenAddress);
+        totalLinearUnits = _totalLinearUnits;
+        day = timeBetweenUnits * 10 minutes;
+        TGEStartDate = _startDate;
+        initialPercentage = _initialPercentage;
+        intermediaryPercentage = _intermediatePercentage;
+        intermediateTime = _startDate + middleTime * 10 minutes;
+        lockEndDate = intermediateTime + linearTime * 10 minutes;
+        isStart = true;
+        signer = Signer;
+        vestingEndTime = lockEndDate + timeBetweenUnits * 10 minutes;
+        __Ownable_init();
+        __ReentrancyGuard_init();
+    }
+    modifier onlyPendingOwner() {
+        require(msg.sender == pendingOwner, "Caller is not the pending owner");
+         _;
+    }
+    // Function to initiate ownership transfer
+    function initiateOwnershipTransfer(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid Wallet Address");
+        pendingOwner = newOwner;
+        emit OwnershipTransferInitiated(owner(), pendingOwner);
+    }
+    // Function to confirm ownership transfer
+    function confirmOwnershipTransfer() external onlyPendingOwner {
+        _transferOwnership(pendingOwner);
+        pendingOwner = address(0); // Reset pending owner
+    }
 }

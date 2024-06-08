@@ -1,21 +1,13 @@
 /**
- *Submitted for verification at Etherscan.io on 2024-05-17
+ *Submitted for verification at Etherscan.io on 2024-06-07
 */
 
 /**
- *Submitted for verification at Etherscan.io on 2024-05-08
+ *Submitted for verification at Etherscan.io on 2024-06-07
 */
 
 /**
- *Submitted for verification at polygonscan.com on 2024-04-29
-*/
-
-/**
- *Submitted for verification at polygonscan.com on 2024-04-29
-*/
-
-/**
- *Submitted for verification at polygonscan.com on 2024-04-27
+ *Submitted for verification at Etherscan.io on 2024-05-31
 */
 
 // File: @openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol
@@ -482,15 +474,15 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
-    }
+    // function renounceOwnership() public virtual onlyOwner {
+    //     _transferOwnership(address(0));
+    // }
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    function transferOwnership(address newOwner) internal virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _transferOwnership(newOwner);
         
@@ -813,6 +805,9 @@ library ECDSA {
 
 // OpenZeppelin Contracts v4.4.1 (utils/cryptography/draft-EIP712.sol)
 
+pragma solidity ^0.8.16;
+
+
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP 712] is a standard for hashing and signing of typed structured data.
  *
@@ -915,7 +910,7 @@ abstract contract EIP712 {
 
 
 
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 
 contract whitelistChecker is EIP712 {
@@ -966,7 +961,7 @@ contract whitelistChecker is EIP712 {
 
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -987,7 +982,6 @@ abstract contract Context {
         return msg.data;
     }
 }
-
 abstract contract ReentrancyGuardUpgradeable is Initializable {
     // Booleans are more expensive than uint256 or any type that takes up a full
     // word because each write operation emits an extra SLOAD to first read the
@@ -1041,9 +1035,153 @@ abstract contract ReentrancyGuardUpgradeable is Initializable {
      */
     uint256[49] private __gap;
 }
+interface IERC20PermitUpgradeable {
+    /**
+     * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
+     * given ``owner``'s signed approval.
+     *
+     * IMPORTANT: The same issues {IERC20-approve} has related to transaction
+     * ordering also apply here.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `deadline` must be a timestamp in the future.
+     * - `v`, `r` and `s` must be a valid `secp256k1` signature from `owner`
+     * over the EIP712-formatted function arguments.
+     * - the signature must use ``owner``'s current nonce (see {nonces}).
+     *
+     * For more information on the signature format, see the
+     * https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+     * section].
+     */
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
+    /**
+     * @dev Returns the current nonce for `owner`. This value must be
+     * included whenever a signature is generated for {permit}.
+     *
+     * Every successful call to {permit} increases ``owner``'s nonce by one. This
+     * prevents a signature from being used multiple times.
+     */
+    function nonces(address owner) external view returns (uint256);
+
+    /**
+     * @dev Returns the domain separator used in the encoding of the signature for {permit}, as defined by {EIP712}.
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+}
+library SafeERC20Upgradeable {
+    using AddressUpgradeable for address;
+
+    function safeTransfer(
+        IERC20Upgradeable token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+    }
+
+    function safeTransferFrom(
+        IERC20Upgradeable token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
+    }
+
+    /**
+     * @dev Deprecated. This function has issues similar to the ones found in
+     * {IERC20-approve}, and its usage is discouraged.
+     *
+     * Whenever possible, use {safeIncreaseAllowance} and
+     * {safeDecreaseAllowance} instead.
+     */
+    function safeApprove(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        // safeApprove should only be called when setting an initial allowance,
+        // or when resetting it to zero. To increase and decrease it, use
+        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
+    }
+
+    function safeIncreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
+
+    function safeDecreaseAllowance(
+        IERC20Upgradeable token,
+        address spender,
+        uint256 value
+    ) internal {
+        unchecked {
+            uint256 oldAllowance = token.allowance(address(this), spender);
+            require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
+            uint256 newAllowance = oldAllowance - value;
+            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+        }
+    }
+
+    function safePermit(
+        IERC20PermitUpgradeable token,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal {
+        uint256 nonceBefore = token.nonces(owner);
+        token.permit(owner, spender, value, deadline, v, r, s);
+        uint256 nonceAfter = token.nonces(owner);
+        require(nonceAfter == nonceBefore + 1, "SafeERC20: permit did not succeed");
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     */
+    function _callOptionalReturn(IERC20Upgradeable token, bytes memory data) private {
+        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
+        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // the target address contains contract code and also asserts for success in the low-level call.
+
+        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
+        if (returndata.length > 0) {
+            // Return data is optional
+            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
+        }
+    }
+}
 // File: @openzeppelin/contracts/access/Ownable.sol
-contract Treasury is OwnableUpgradeable, whitelistChecker, ReentrancyGuardUpgradeable{
+contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardUpgradeable{
     //@dev add designated signer
     address public designatedSigner;
     event randomFunction(uint randomNumber, uint validFrom, uint validTo, address _forWhichItIsValid);
@@ -1053,6 +1191,7 @@ contract Treasury is OwnableUpgradeable, whitelistChecker, ReentrancyGuardUpgrad
     //@dev this is a mapping which keeps the track of total funds invested in the project
     mapping (uint => uint) public projectTotalCollectedInETH;
     mapping (uint => uint) public projectTotalCollectedInUSDT;
+    mapping (uint => uint) public projectCollectedInUSDT;
     //@dev this is a mapping to restrict superAdmin to withdraw funds from a project onlyOnce
     mapping (uint => mapping (bool => bool)) internal onlyOncePerProject;
     //@dev this is a mapping to let us know how much funds has been taken out by the projectOwner
@@ -1070,26 +1209,34 @@ contract Treasury is OwnableUpgradeable, whitelistChecker, ReentrancyGuardUpgrad
     mapping(address=>mapping(uint=>bool)) public refundAmountInETH;
     mapping(address=>bool) public isOwner;
     uint256  public refundAmunt = 0 ;
-
+    uint256  public _platFormFees ;
+    address private pendingOwner;
 
     mapping (uint => address[]) internal projectUsers;
     mapping(uint=>mapping(uint=>bool) ) public PlatformFee;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     IERC20Upgradeable public usdt;
     event Deposit(address sender,address receiver , uint amount,uint projectid);
-    //Setters
-
+    event DesignatedSigner(address sender);
+    event Owner(address sender);
+    event SetTokenAddress(address sender);
+    event SetPlatFormFees(uint Fees);
+    event OwnershipTransferInitiated(address indexed currentOwner, address indexed pendingOwner);
     
     constructor(){
         designatedSigner= msg.sender;
         isOwner[msg.sender]=true;
     }
-
+    // Function to Sets the address of the ERC-20 token contract
     function setUSDTAddress (address _usdt) external onlyOwner {
         usdt = IERC20Upgradeable(_usdt);
+        emit SetTokenAddress(_usdt);
     }
-
+    //Sets the address of the authorized signer
     function setDesignatedSigner (address _signer) external onlyOwner {
+        require(_signer != address(0),"validate Address");
         designatedSigner = _signer;
+        emit DesignatedSigner(_signer);
     }
 
     modifier onlyOnce (uint projectId, bool inETH) {
@@ -1097,170 +1244,119 @@ contract Treasury is OwnableUpgradeable, whitelistChecker, ReentrancyGuardUpgrad
         _;
     }
 
-
-    function setOwners(address _address,bool _setStatus)external onlyOwner{
-     isOwner[_address]=_setStatus;
-    }
-
-
-    function investInProjects(Whitelist memory users) external payable nonReentrant{
+    // Allows a user to pledge tokens against a specific project.
+    function investInProjects(Whitelist memory users,uint decimal) external payable nonReentrant{
         require (getSigner(users) == designatedSigner,'!Signer');
         require (users.userAddress == msg.sender,'!User');
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
-        if (!users.inETH) {
-            require (whichCurreny[msg.sender][users.projectId] != 2, '!Allowed');
-            if (whichCurreny[msg.sender][users.projectId]==0)
-            whichCurreny[msg.sender][users.projectId] = 1;
-            uint _amountToWithdraw = (users.amount  * 10**6 / 100);
-            usdt.transferFrom(msg.sender, address (this), _amountToWithdraw);
-            investorInvestedAmountPerProjectInUSDT[users.projectId][msg.sender] += _amountToWithdraw;
-            projectTotalCollectedInUSDT[users.projectId] += _amountToWithdraw;
-            if (projectUsersInUSDT[users.projectId][projectIdToSlotsInUSDT[users.projectId]].length > 200) {
-              projectIdToSlotsInUSDT[users.projectId] += 1;
-            }
-            projectUsersInUSDT[users.projectId][projectIdToSlotsInUSDT[users.projectId]].push(msg.sender);
-            emit Deposit(msg.sender,address (this),_amountToWithdraw,users.projectId);
+        uint _amountToWithdraw = (users.amount  * 10**6 / 100);
+        if(decimal==18){
+            _amountToWithdraw = (users.amount  * 10**18 / 100);
         }
-        else {
-        
-            investorInvestedAmountPerProjectInETH[users.projectId][msg.sender] += msg.value;
-            projectTotalCollectedInETH[users.projectId] += msg.value;
-                    if (projectUsersInETH[users.projectId][projectIdToSlotsInETH[users.projectId]].length > 200) {
-                projectIdToSlotsInETH[users.projectId] += 1;
-            }
-
-            projectUsersInETH[users.projectId][projectIdToSlotsInETH[users.projectId]].push(msg.sender);
-            
-            emit Deposit(msg.sender,address(this),msg.value,users.projectId);
-
+       
+        usdt.safeTransferFrom(msg.sender, address (this), _amountToWithdraw);
+        investorInvestedAmountPerProjectInUSDT[users.projectId][msg.sender] += _amountToWithdraw;
+        projectTotalCollectedInUSDT[users.projectId] += _amountToWithdraw;
+        projectCollectedInUSDT[users.projectId] += _amountToWithdraw;
+        if (projectUsersInUSDT[users.projectId][projectIdToSlotsInUSDT[users.projectId]].length > 200) {
+            projectIdToSlotsInUSDT[users.projectId] += 1;
         }
+        projectUsersInUSDT[users.projectId][projectIdToSlotsInUSDT[users.projectId]].push(msg.sender);
+        emit Deposit(msg.sender,address (this),_amountToWithdraw,users.projectId);
         projectUsers[users.projectId].push(msg.sender);
     }
-
-
+    //Allows the admin to withdraw the accumulated platform fees.
     function withdrawAdminShare (uint projectId, bool inETH,Whitelist memory users) external   onlyOnce(projectId, inETH){
-         require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
+        require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
         require (getSigner(users) == designatedSigner,'!Signer');
         require (users.userAddress == msg.sender,'!User');
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
-        if (!inETH) {
-            uint amountToWithdraw = projectTotalCollectedInUSDT[projectId];
-            amountToWithdraw = (amountToWithdraw * (users.platformFee)) / 100;
-            onlyOncePerProject[projectId][inETH] = true;
-            usdt.transfer(msg.sender, amountToWithdraw);
-        }
-        else {
-            uint amountToWithdraw = projectTotalCollectedInETH[projectId];
-            amountToWithdraw = (amountToWithdraw * (users.platformFee)) / 100;
-            onlyOncePerProject[projectId][inETH] = true;
-            payable(msg.sender).transfer(amountToWithdraw);
-        }
+        uint amountToWithdraw = projectTotalCollectedInUSDT[projectId];
+        amountToWithdraw = (amountToWithdraw * (_platFormFees)) / 100;
+        onlyOncePerProject[projectId][inETH] = true;
+        usdt.safeTransfer(msg.sender, amountToWithdraw);
     }
-
-    function settleProjectOwnerFunds(Whitelist memory users) external  {
-              require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
-            require (getSigner(users) == designatedSigner,'Invalid Signer');
-            require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
-            nonceStore[users.userAddress][users.timestamp] = true;
-            uint _amountToWithdraw = users.amount ;
-            if (!users.inETH) {
-                fundsWithdrawn[users.projectId][users.inETH] += _amountToWithdraw;
-                uint deducedAmount = projectTotalCollectedInUSDT[users.projectId] - (projectTotalCollectedInUSDT[users.projectId] * (users.platformFee))/100;
-                require (deducedAmount >= fundsWithdrawn[users.projectId][users.inETH],"check deducedAmount");
-                usdt.transfer(users.userAddress, _amountToWithdraw);
-                projectTotalCollectedInUSDT[users.projectId]-=_amountToWithdraw;
-            }
-            else {
-                fundsWithdrawn[users.projectId][users.inETH] += _amountToWithdraw;
-                uint deducedAmount = projectTotalCollectedInETH[users.projectId] - (projectTotalCollectedInETH[users.projectId] *(users.platformFee))/100;
-                require (deducedAmount >= fundsWithdrawn[users.projectId][users.inETH],"check deducedAmount");
-                payable(users.userAddress).transfer(_amountToWithdraw);
-                projectTotalCollectedInETH[users.projectId]-=_amountToWithdraw;
-            }
+    //Settles the funds for the project owner from a specific project.
+    function settleProjectOwnerFunds(Whitelist memory users,uint decimal) external  nonReentrant{
+        require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
+        require (getSigner(users) == designatedSigner,'Invalid Signer');
+        require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
+        nonceStore[users.userAddress][users.timestamp] = true;
+        // uint _amountToWithdraw =(users.amount  * 10**uint(decimal) / 100);
+        uint _amountToWithdraw = (users.amount  * 10**6 / 100);
+        if(decimal==18){
+            _amountToWithdraw = (users.amount  * 10**18 / 100);
+        }
+        fundsWithdrawn[users.projectId][users.inETH] += _amountToWithdraw;
+        uint deducedAmount = projectTotalCollectedInUSDT[users.projectId] - (projectTotalCollectedInUSDT[users.projectId] * (_platFormFees))/100;
+        require (deducedAmount >= fundsWithdrawn[users.projectId][users.inETH],"check deducedAmount");
+        projectCollectedInUSDT[users.projectId]-=_amountToWithdraw;
+        usdt.safeTransfer(users.userAddress, _amountToWithdraw);    
     }
-    function refund(Whitelist memory users) external payable nonReentrant{
+    // Allows a user to refund their invested funds from a specific project.
+    function refund(Whitelist memory users,uint decimal) external payable nonReentrant{
         require (getSigner(users) == designatedSigner,'Invalid Signer');
         require(msg.sender==users.userAddress,"not a user");
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
+        // uint amount = (users.amount  * 10**uint(decimal) / 100);
         uint amount = (users.amount  * 10**6 / 100);
-        if (whichCurreny[users.userAddress][users.projectId] == 1) {
-            require (!refundAmountInUSDT[users.userAddress][users.projectId],"!Refund completed");
-            require (investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress] >= amount,"Invalid Amount to retrieve");
-            investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress]-= amount;
-            usdt.transfer(users.userAddress,amount);
-            projectTotalCollectedInUSDT[users.projectId]-=amount;
-            refundAmountInUSDT[users.userAddress][users.projectId]=true;
-        } else {
-            require (!refundAmountInETH[users.userAddress][users.projectId],"!Refund completed");
-            require (investorInvestedAmountPerProjectInETH[users.projectId][users.userAddress] >= amount,'Invalid Amount to retrieve');
-            investorInvestedAmountPerProjectInETH[users.projectId][users.userAddress] -= amount;
-            payable (users.userAddress).transfer(amount);
-            projectTotalCollectedInETH[users.projectId]-=amount;
-            refundAmountInETH[users.userAddress][users.projectId]=true;
+        if(decimal==18){
+            amount = (users.amount  * 10**18 / 100);
         }
+        require (!refundAmountInUSDT[users.userAddress][users.projectId],"!Refund completed");
+        require (investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress] >= amount,"Invalid Amount to retrieve");
+        investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress]-= amount;
+        projectCollectedInUSDT[users.projectId]-=amount;
+        refundAmountInUSDT[users.userAddress][users.projectId]=true;
+        usdt.safeTransfer(users.userAddress,amount);
     }
-
+    // Withdraws all funds from a specific project.
     function withdrawAllFundsOfAProject (uint projectID) external  {
         require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
-        uint _usdtAmount = projectTotalCollectedInUSDT[projectID];
+        uint _usdtAmount = projectCollectedInUSDT[projectID];
         uint _ethAmount = projectTotalCollectedInETH[projectID];
         require (_usdtAmount>0 || _ethAmount >0,'!Funds');
-        usdt.transfer(msg.sender,_usdtAmount);
-        payable(msg.sender).transfer(_ethAmount);
+        usdt.safeTransfer(msg.sender,_usdtAmount);
         projectTotalCollectedInETH[projectID]-=_ethAmount;
-        projectTotalCollectedInUSDT[projectID]-=_usdtAmount;
+        projectCollectedInUSDT[projectID]-=_usdtAmount;
+        payable(msg.sender).transfer(_ethAmount);
     }
-    
-     function setplatformFee(uint projectId,uint _platformFee) external view {
-      require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
-        PlatformFee[projectId][_platformFee];
-        Whitelist memory users;
-        users.projectId=projectId;
-        users.platformFee=_platformFee;
+    //Sets the platform fee as a percentage of the transaction amount.
+    function setplatformFee(uint _platformFee) external {
+      require(_platformFee<=10,"Max Platform Fee 10%");
+      _platFormFees = _platformFee;
+      emit SetPlatFormFees(_platformFee);
     }
-
-    function refundFromAdminInETH(uint projectId, uint slotId) external  {
-       require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
-        uint numberOfUsers = projectUsersInETH[projectId][slotId].length;
-        for (uint i = 0; i< numberOfUsers;i++) {
-            address user = projectUsersInETH[projectId][slotId][i];
-            require (!isRefundedInETH[user][projectId],'Already refunded');
-            isRefundedInETH[user][projectId] = true;
-            
-            payable(user).transfer(investorInvestedAmountPerProjectInETH[projectId][user]);
-         projectTotalCollectedInETH[projectId]-=investorInvestedAmountPerProjectInETH[projectId][user];
-         investorInvestedAmountPerProjectInETH[projectId][user]-=investorInvestedAmountPerProjectInETH[projectId][user];
-        }
-
-    }
-
-    function refundFromAdminInUSDT(uint projectId, uint slotId) external  {
-         require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
-        uint numberOfUsers = projectUsersInUSDT[projectId][slotId].length;
-        for (uint i = 0; i< numberOfUsers; i++) {
-            address user = projectUsersInUSDT[projectId][slotId][i];
-            require (!isRefundedInUSDT[user][projectId],'Already refunded');
-            isRefundedInUSDT[user][projectId] = true;
-            refundAmunt += investorInvestedAmountPerProjectInUSDT[projectId][user];
-            usdt.transfer(user,investorInvestedAmountPerProjectInUSDT[projectId][user]);
-            projectTotalCollectedInUSDT[projectId]-=investorInvestedAmountPerProjectInUSDT[projectId][user];
-            investorInvestedAmountPerProjectInUSDT[projectId][user]-=investorInvestedAmountPerProjectInUSDT[projectId][user];
-        }
-    }
-
     function initialize(address _address) external initializer{
         usdt =IERC20Upgradeable(_address);
         __Ownable_init();
+        __ReentrancyGuard_init();
+        designatedSigner= msg.sender;
+        isOwner[msg.sender]=true;
+        _platFormFees =10;
     }
-
-     function totalInvestorsInProject(uint projectId, uint slotId) external view returns(uint, uint) {
+    //Returns the total number of investors in a specific project.
+    function totalInvestorsInProject(uint projectId, uint slotId) external view returns(uint, uint) {
         uint inETH = projectUsersInETH[projectId][slotId].length;
         uint inUSDT = projectUsersInUSDT[projectId][slotId].length;
         return (inETH,inUSDT);
     }
-
-
+    modifier onlyPendingOwner() {
+        require(msg.sender == pendingOwner, "Caller is not the pending owner");
+         _;
+    }
+    // Function to initiate ownership transfer
+    function initiateOwnershipTransfer(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid Wallet Address");
+        pendingOwner = newOwner;
+        emit OwnershipTransferInitiated(owner(), pendingOwner);
+    }
+    // Function to confirm ownership transfer
+    function confirmOwnershipTransfer() external onlyPendingOwner {
+        _transferOwnership(pendingOwner);
+        pendingOwner = address(0); // Reset pending owner
+    }
 }
