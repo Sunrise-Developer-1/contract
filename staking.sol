@@ -948,11 +948,11 @@ pragma solidity ^0.8.15;
             require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
             require (getSigner(_signer) == signer,'!Signer'); 
             require(StakesCount[msg.sender] == 0, "Already Staked");
-            require(_locktype<5,"Invalid Locktype");
+            require(_locktype<lockTime.length,"Invalid Locktype");
             usedNonce[msg.sender][_signer.timestamp]=true;
            
-            if(_amount < 1000*10**18){
-              require(_locktype == 1,"Invalid Lock Time");
+            if(_locktype == 1){
+                require(_amount<=1000*10**18 ,"max amount reached");
             }
             stakeInfo memory stake;
             stake.stakeTime = block.timestamp;
@@ -973,12 +973,12 @@ pragma solidity ^0.8.15;
             require(!usedNonce[msg.sender][_signer.timestamp],"Nonce : Invalid Nonce");
             require (getSigner(_signer) == signer,'!Signer'); 
             require(StakesCount[msg.sender]!=0,"No Exitsting Stake");  
-            require(_locktype<5,"Invalid Locktype");
+            require(_locktype<lockTime.length,"Invalid Locktype");
             require(userStakeInformation[msg.sender][poolId].stakelocktype < _locktype || _locktype == 4||_locktype == 1 || block.timestamp>=lockTime[userStakeInformation[msg.sender][poolId].stakelocktype]+userStakeInformation[msg.sender][poolId].stakeTime,"Stake Tokens");
             usedNonce[msg.sender][_signer.timestamp]=true;
             uint totalamount =  userStakeInformation[msg.sender][poolId].stakeAmount + _amount ;
-            if(totalamount < 1000*10**18){
-              require(_locktype == 1,"Invalid Lock Time");
+             if(_locktype == 1){
+                require(totalamount<=1000*10**18 ,"max amount reached");
             }
             totalStaking +=_amount;
             userStakeInformation[msg.sender][poolId].stakeTime =block.timestamp;
@@ -1032,16 +1032,10 @@ pragma solidity ^0.8.15;
           lockTime=_timeLock;
         }
         //Allows an admin to withdraw the total amount of staked funds from the contract
-        function withDrawFunds(address _tokenAddress, uint amount, bool inETH) external onlyOwner {
-            if (!inETH) {
-                IERC20Upgradeable _tokens = IERC20Upgradeable(_tokenAddress) ;
-                require(_tokens.balanceOf(address(this))>0,'Nil Balance');
-                _tokens.safeTransfer(owner(), amount);
-            }
-            else {
-                require (address(this).balance> 0,'Nil Balance');
-                payable (owner()).transfer(address(this).balance);
-            }
+        function withDrawFunds(address _tokenAddress, uint amount) external onlyOwner {
+            IERC20Upgradeable _tokens = IERC20Upgradeable(_tokenAddress) ;
+            require(_tokens.balanceOf(address(this))>0,'Nil Balance');
+            _tokens.safeTransfer(owner(), amount);
         }
         //Retrieves the total balance held by the contract.
         function totalContractBalance()  public view returns(uint){

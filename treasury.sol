@@ -1325,12 +1325,13 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         payable(msg.sender).transfer(_ethAmount);
     }
     //Sets the platform fee as a percentage of the transaction amount.
-    function setplatformFee(uint _platformFee) external {
+    function setplatformFee(uint _platformFee) external onlyOwner {
       require(_platformFee<=10,"Max Platform Fee 10%");
       _platFormFees = _platformFee;
       emit SetPlatFormFees(_platformFee);
     }
     function initialize(address _address) external initializer{
+        require(isOwner[msg.sender],"!Owner");
         usdt =IERC20Upgradeable(_address);
         __Ownable_init();
         __ReentrancyGuard_init();
