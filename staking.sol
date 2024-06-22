@@ -951,9 +951,9 @@ pragma solidity ^0.8.15;
             require(_locktype<lockTime.length,"Invalid Locktype");
             usedNonce[msg.sender][_signer.timestamp]=true;
            
-            if(_locktype == 1){
-                require(_amount<=1000*10**18 ,"max amount reached");
-            }
+            if(_amount < 1000*10**18){ 
+              require(_locktype == 1,"Invalid Lock Time"); 
+            } 
             stakeInfo memory stake;
             stake.stakeTime = block.timestamp;
             stake.stakeAmount = _amount;
@@ -977,9 +977,9 @@ pragma solidity ^0.8.15;
             require(userStakeInformation[msg.sender][poolId].stakelocktype < _locktype || _locktype == 4||_locktype == 1 || block.timestamp>=lockTime[userStakeInformation[msg.sender][poolId].stakelocktype]+userStakeInformation[msg.sender][poolId].stakeTime,"Stake Tokens");
             usedNonce[msg.sender][_signer.timestamp]=true;
             uint totalamount =  userStakeInformation[msg.sender][poolId].stakeAmount + _amount ;
-             if(_locktype == 1){
-                require(totalamount<=1000*10**18 ,"max amount reached");
-            }
+            if(totalamount < 1000*10**18){ 
+              require(_locktype == 1,"Invalid Lock Time"); 
+            } 
             totalStaking +=_amount;
             userStakeInformation[msg.sender][poolId].stakeTime =block.timestamp;
             userStakeInformation[msg.sender][poolId].stakeAmount +=_amount;
