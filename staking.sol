@@ -16,6 +16,7 @@ interface IERC20Upgradeable {
      */
     function totalSupply() external view returns (uint256);
 
+    function decimals() external view returns (uint8);
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
@@ -284,53 +285,78 @@ abstract contract ContextUpgradeable is Initializable {
 pragma solidity ^0.8.0 ;
 
 abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
-    address private _owner;
+    struct OwnableStorage {
+        address _owner;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant OwnableStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+
+    function _getOwnableStorage() private pure returns (OwnableStorage storage $) {
+        assembly {
+            $.slot := OwnableStorageLocation
+        }
+    }
+
+    /**
+     * @dev The caller account is not authorized to perform an operation.
+     */
+    error OwnableUnauthorizedAccount(address account);
+
+    /**
+     * @dev The owner is not a valid owner account. (eg. `address(0)`)
+     */
+    error OwnableInvalidOwner(address owner);
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
+     * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
      */
-    function __Ownable_init() internal onlyInitializing {
-        __Ownable_init_unchained();
+    function __Ownable_init(address initialOwner) internal onlyInitializing {
+        __Ownable_init_unchained(initialOwner);
     }
 
-    function __Ownable_init_unchained() internal onlyInitializing {
-        _transferOwnership(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
+    function __Ownable_init_unchained(address initialOwner) internal onlyInitializing {
+        if (initialOwner == address(0)) {
+            revert OwnableInvalidOwner(address(0));
+        }
+        _transferOwnership(initialOwner);
     }
 
     /**
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _checkOwner();
         _;
     }
 
     /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
+     * @dev Returns the address of the current owner.
      */
-    // function renounceOwnership() public virtual onlyOwner {
-    //     _transferOwnership(address(0));
-    // }
+    function owner() public view virtual returns (address) {
+        OwnableStorage storage $ = _getOwnableStorage();
+        return $._owner;
+    }
+
+    /**
+     * @dev Throws if the sender is not the owner.
+     */
+    function _checkOwner() internal view virtual {
+        if (owner() != _msgSender()) {
+            revert OwnableUnauthorizedAccount(_msgSender());
+        }
+    }
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        if (newOwner == address(0)) {
+            revert OwnableInvalidOwner(address(0));
+        }
         _transferOwnership(newOwner);
     }
 
@@ -338,18 +364,12 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Internal function without access restriction.
      */
-    function _transferOwnership(address newOwner) internal  virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
+    function _transferOwnership(address newOwner) internal virtual {
+        OwnableStorage storage $ = _getOwnableStorage();
+        address oldOwner = $._owner;
+        $._owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-     */
-    uint256[49] private __gap;
 }
 
 library Strings {
@@ -907,9 +927,70 @@ library SafeERC20Upgradeable {
         }
     }
 }
+abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
+    /// @custom:storage-location erc7201:openzeppelin.storage.Ownable2Step
+    struct Ownable2StepStorage {
+        address _pendingOwner;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable2Step")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant Ownable2StepStorageLocation = 0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
+
+    function _getOwnable2StepStorage() private pure returns (Ownable2StepStorage storage $) {
+        assembly {
+            $.slot := Ownable2StepStorageLocation
+        }
+    }
+
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+
+    function __Ownable2Step_init() internal onlyInitializing {
+    }
+
+    function __Ownable2Step_init_unchained() internal onlyInitializing {
+    }
+    /**
+     * @dev Returns the address of the pending owner.
+     */
+    function pendingOwner() public view virtual returns (address) {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        return $._pendingOwner;
+    }
+
+    /**
+     * @dev Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        $._pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner(), newOwner);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`) and deletes any pending owner.
+     * Internal function without access restriction.
+     */
+    function _transferOwnership(address newOwner) internal virtual override {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        delete $._pendingOwner;
+        super._transferOwnership(newOwner);
+    }
+
+    /**
+     * @dev The new owner accepts the ownership transfer.
+     */
+    function acceptOwnership() public virtual {
+        address sender = _msgSender();
+        if (pendingOwner() != sender) {
+            revert OwnableUnauthorizedAccount(sender);
+        }
+        _transferOwnership(sender);
+    }
+}
 pragma solidity ^0.8.15;
 
-    contract Devvestaking is OwnableUpgradeable,whitelistChecker,ReentrancyGuardUpgradeable {
+contract Devvestaking is Ownable2StepUpgradeable,whitelistChecker,ReentrancyGuardUpgradeable {
         using SafeERC20Upgradeable for IERC20Upgradeable;
         IERC20Upgradeable  public token;
         address public signer;
@@ -928,13 +1009,12 @@ pragma solidity ^0.8.15;
         mapping(address => uint256) public StakesPerUser;
         mapping(address => uint256) public StakesCount;
         mapping (address => uint) public stakeTime;
-        address private pendingOwner;
+
         event unstakeDevve (address _user, uint _amount);
         event rewards(address _user, uint _amount);
         event setTokenAddress(address _user);
         event setSignerAddress(address _user);
         event Stake(address _sender, address _recipient,uint _amount,uint id,uint locktype);
-        event OwnershipTransferInitiated(address indexed currentOwner, address indexed pendingOwner);
 
        // Function to Sets the address of the ERC-20 token contract
         function setToken(address _address) external onlyOwner{
@@ -1016,7 +1096,8 @@ pragma solidity ^0.8.15;
         }
         function initialize(address _token,uint[] memory _setLocktime) external initializer{
             token=IERC20Upgradeable(_token);
-            __Ownable_init();
+            __Ownable_init(msg.sender);
+            __Ownable2Step_init();
             __ReentrancyGuard_init();
             signer=msg.sender;
             lockTime=_setLocktime;
@@ -1040,22 +1121,5 @@ pragma solidity ^0.8.15;
         //Retrieves the total balance held by the contract.
         function totalContractBalance()  public view returns(uint){
            return token.balanceOf(address(this));
-        }
-
-        modifier onlyPendingOwner() {
-            require(msg.sender == pendingOwner, "Caller is not the pending owner");
-            _;
-        }
-        // Function to initiate ownership transfer
-        function initiateOwnershipTransfer(address newOwner) external onlyOwner {
-            require(newOwner != address(0), "Invalid Wallet Address");
-            pendingOwner = newOwner;
-            emit OwnershipTransferInitiated(owner(), pendingOwner);
-        }
-
-        // Function to confirm ownership transfer
-        function confirmOwnershipTransfer() external onlyPendingOwner {
-            _transferOwnership(pendingOwner);
-            pendingOwner = address(0); // Reset pending owner
         }
     }
