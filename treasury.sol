@@ -26,6 +26,7 @@ interface IERC20Upgradeable {
      */
     function totalSupply() external view returns (uint256);
 
+    function decimals() external view returns (uint8);
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
@@ -437,42 +438,76 @@ pragma solidity ^0.8.15;
  * the owner.
  */
 abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
-    address private _owner;
+    struct OwnableStorage {
+        address _owner;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant OwnableStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+
+    function _getOwnableStorage() private pure returns (OwnableStorage storage $) {
+        assembly {
+            $.slot := OwnableStorageLocation
+        }
+    }
+
+    /**
+     * @dev The caller account is not authorized to perform an operation.
+     */
+    error OwnableUnauthorizedAccount(address account);
+
+    /**
+     * @dev The owner is not a valid owner account. (eg. `address(0)`)
+     */
+    error OwnableInvalidOwner(address owner);
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
+     * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
      */
-    function __Ownable_init() internal onlyInitializing {
-        __Ownable_init_unchained();
+    function __Ownable_init(address initialOwner) internal onlyInitializing {
+        __Ownable_init_unchained(initialOwner);
     }
 
-    function __Ownable_init_unchained() internal onlyInitializing {
-        _transferOwnership(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
+    function __Ownable_init_unchained(address initialOwner) internal onlyInitializing {
+        if (initialOwner == address(0)) {
+            revert OwnableInvalidOwner(address(0));
+        }
+        _transferOwnership(initialOwner);
     }
 
     /**
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _checkOwner();
         _;
     }
 
     /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        OwnableStorage storage $ = _getOwnableStorage();
+        return $._owner;
+    }
+
+    /**
+     * @dev Throws if the sender is not the owner.
+     */
+    function _checkOwner() internal view virtual {
+        if (owner() != _msgSender()) {
+            revert OwnableUnauthorizedAccount(_msgSender());
+        }
+    }
+
+    /**
      * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     * `onlyOwner` functions. Can only be called by the current owner.
      *
      * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
+     * thereby disabling any functionality that is only available to the owner.
      */
     // function renounceOwnership() public virtual onlyOwner {
     //     _transferOwnership(address(0));
@@ -482,10 +517,11 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) internal virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        if (newOwner == address(0)) {
+            revert OwnableInvalidOwner(address(0));
+        }
         _transferOwnership(newOwner);
-        
     }
 
     /**
@@ -493,19 +529,12 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
      * Internal function without access restriction.
      */
     function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
+        OwnableStorage storage $ = _getOwnableStorage();
+        address oldOwner = $._owner;
+        $._owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-     */
-    uint256[49] private __gap;
 }
-
 
 
 library Strings {
@@ -1180,8 +1209,69 @@ library SafeERC20Upgradeable {
         }
     }
 }
+abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
+    /// @custom:storage-location erc7201:openzeppelin.storage.Ownable2Step
+    struct Ownable2StepStorage {
+        address _pendingOwner;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable2Step")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant Ownable2StepStorageLocation = 0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
+
+    function _getOwnable2StepStorage() private pure returns (Ownable2StepStorage storage $) {
+        assembly {
+            $.slot := Ownable2StepStorageLocation
+        }
+    }
+
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+
+    function __Ownable2Step_init() internal onlyInitializing {
+    }
+
+    function __Ownable2Step_init_unchained() internal onlyInitializing {
+    }
+    /**
+     * @dev Returns the address of the pending owner.
+     */
+    function pendingOwner() public view virtual returns (address) {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        return $._pendingOwner;
+    }
+
+    /**
+     * @dev Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        $._pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner(), newOwner);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`) and deletes any pending owner.
+     * Internal function without access restriction.
+     */
+    function _transferOwnership(address newOwner) internal virtual override {
+        Ownable2StepStorage storage $ = _getOwnable2StepStorage();
+        delete $._pendingOwner;
+        super._transferOwnership(newOwner);
+    }
+
+    /**
+     * @dev The new owner accepts the ownership transfer.
+     */
+    function acceptOwnership() public virtual {
+        address sender = _msgSender();
+        if (pendingOwner() != sender) {
+            revert OwnableUnauthorizedAccount(sender);
+        }
+        _transferOwnership(sender);
+    }
+}
 // File: @openzeppelin/contracts/access/Ownable.sol
-contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardUpgradeable{
+contract DevveTreasury2 is Ownable2StepUpgradeable, whitelistChecker,ReentrancyGuardUpgradeable{
     //@dev add designated signer
     address public designatedSigner;
     event randomFunction(uint randomNumber, uint validFrom, uint validTo, address _forWhichItIsValid);
@@ -1207,25 +1297,24 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
     mapping (uint => uint) internal  projectIdToSlotsInUSDT;
     mapping(address=>mapping(uint=>bool)) public refundAmountInUSDT;
     mapping(address=>mapping(uint=>bool)) public refundAmountInETH;
-    mapping(address=>bool) public isOwner;
-    uint256  public refundAmunt = 0 ;
-    uint256  public _platFormFees ;
-    address private pendingOwner;
-
     mapping (uint => address[]) internal projectUsers;
     mapping(uint=>mapping(uint=>bool) ) public PlatformFee;
+
+    uint256  public refundAmunt = 0 ;
+    uint256  public _platFormFees ;
+
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
     IERC20Upgradeable public usdt;
+
     event Deposit(address sender,address receiver , uint amount,uint projectid);
     event DesignatedSigner(address sender);
     event Owner(address sender);
     event SetTokenAddress(address sender);
     event SetPlatFormFees(uint Fees);
-    event OwnershipTransferInitiated(address indexed currentOwner, address indexed pendingOwner);
     
     constructor(){
         designatedSigner= msg.sender;
-        isOwner[msg.sender]=true;
     }
     // Function to Sets the address of the ERC-20 token contract
     function setUSDTAddress (address _usdt) external onlyOwner {
@@ -1238,23 +1327,18 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         designatedSigner = _signer;
         emit DesignatedSigner(_signer);
     }
-
     modifier onlyOnce (uint projectId, bool inETH) {
         require (!onlyOncePerProject[projectId][inETH],'Already Claimed');
         _;
     }
-
     // Allows a user to pledge tokens against a specific project.
-    function investInProjects(Whitelist memory users,uint decimal) external payable nonReentrant{
+    function investInProjects(Whitelist memory users) external payable nonReentrant{
         require (getSigner(users) == designatedSigner,'!Signer');
         require (users.userAddress == msg.sender,'!User');
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
-        uint _amountToWithdraw = (users.amount  * 10**6 / 100);
-        if(decimal==18){
-            _amountToWithdraw = (users.amount  * 10**18 / 100);
-        }
-       
+        uint decimals =  10 ** uint(usdt.decimals());
+        uint _amountToWithdraw = (users.amount  * decimals / 100);
         usdt.safeTransferFrom(msg.sender, address (this), _amountToWithdraw);
         investorInvestedAmountPerProjectInUSDT[users.projectId][msg.sender] += _amountToWithdraw;
         projectTotalCollectedInUSDT[users.projectId] += _amountToWithdraw;
@@ -1267,8 +1351,7 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         projectUsers[users.projectId].push(msg.sender);
     }
     //Allows the admin to withdraw the accumulated platform fees.
-    function withdrawAdminShare (uint projectId, bool inETH,Whitelist memory users) external   onlyOnce(projectId, inETH){
-        require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
+    function withdrawAdminShare (uint projectId, bool inETH,Whitelist memory users) external onlyOwner  onlyOnce(projectId, inETH){
         require (getSigner(users) == designatedSigner,'!Signer');
         require (users.userAddress == msg.sender,'!User');
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
@@ -1279,16 +1362,12 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         usdt.safeTransfer(msg.sender, amountToWithdraw);
     }
     //Settles the funds for the project owner from a specific project.
-    function settleProjectOwnerFunds(Whitelist memory users,uint decimal) external  nonReentrant{
-        require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
+    function settleProjectOwnerFunds(Whitelist memory users) external onlyOwner nonReentrant{
         require (getSigner(users) == designatedSigner,'Invalid Signer');
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
-        // uint _amountToWithdraw =(users.amount  * 10**uint(decimal) / 100);
-        uint _amountToWithdraw = (users.amount  * 10**6 / 100);
-        if(decimal==18){
-            _amountToWithdraw = (users.amount  * 10**18 / 100);
-        }
+        uint decimals =  10 ** uint(usdt.decimals());
+        uint _amountToWithdraw = (users.amount  * decimals / 100);
         fundsWithdrawn[users.projectId][users.inETH] += _amountToWithdraw;
         uint deducedAmount = projectTotalCollectedInUSDT[users.projectId] - (projectTotalCollectedInUSDT[users.projectId] * (_platFormFees))/100;
         require (deducedAmount >= fundsWithdrawn[users.projectId][users.inETH],"check deducedAmount");
@@ -1296,16 +1375,13 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         usdt.safeTransfer(users.userAddress, _amountToWithdraw);    
     }
     // Allows a user to refund their invested funds from a specific project.
-    function refund(Whitelist memory users,uint decimal) external payable nonReentrant{
+    function refund(Whitelist memory users) external payable nonReentrant{
         require (getSigner(users) == designatedSigner,'Invalid Signer');
         require(msg.sender==users.userAddress,"not a user");
         require (!nonceStore[users.userAddress][users.timestamp],'!Nonce Used');
         nonceStore[users.userAddress][users.timestamp] = true;
-        // uint amount = (users.amount  * 10**uint(decimal) / 100);
-        uint amount = (users.amount  * 10**6 / 100);
-        if(decimal==18){
-            amount = (users.amount  * 10**18 / 100);
-        }
+        uint decimals =  10 ** uint(usdt.decimals());
+        uint amount = (users.amount  * decimals / 100);
         require (!refundAmountInUSDT[users.userAddress][users.projectId],"!Refund completed");
         require (investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress] >= amount,"Invalid Amount to retrieve");
         investorInvestedAmountPerProjectInUSDT[users.projectId][users.userAddress]-= amount;
@@ -1314,8 +1390,7 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         usdt.safeTransfer(users.userAddress,amount);
     }
     // Withdraws all funds from a specific project.
-    function withdrawAllFundsOfAProject (uint projectID) external  {
-        require(msg.sender==owner() || isOwner[msg.sender],"!Owner");
+    function withdrawAllFundsOfAProject (uint projectID) external onlyOwner {
         uint _usdtAmount = projectCollectedInUSDT[projectID];
         uint _ethAmount = projectTotalCollectedInETH[projectID];
         require (_usdtAmount>0 || _ethAmount >0,'!Funds');
@@ -1330,13 +1405,12 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
       _platFormFees = _platformFee;
       emit SetPlatFormFees(_platformFee);
     }
-    function initialize(address _address) external initializer{
-        require(isOwner[msg.sender],"!Owner");
+    function initialize(address _address) external onlyOwner initializer{
         usdt =IERC20Upgradeable(_address);
-        __Ownable_init();
+        __Ownable_init(msg.sender);
+         __Ownable2Step_init();
         __ReentrancyGuard_init();
         designatedSigner= msg.sender;
-        isOwner[msg.sender]=true;
         _platFormFees =10;
     }
     //Returns the total number of investors in a specific project.
@@ -1344,20 +1418,5 @@ contract DevveTreasury2 is OwnableUpgradeable, whitelistChecker,ReentrancyGuardU
         uint inETH = projectUsersInETH[projectId][slotId].length;
         uint inUSDT = projectUsersInUSDT[projectId][slotId].length;
         return (inETH,inUSDT);
-    }
-    modifier onlyPendingOwner() {
-        require(msg.sender == pendingOwner, "Caller is not the pending owner");
-         _;
-    }
-    // Function to initiate ownership transfer
-    function initiateOwnershipTransfer(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid Wallet Address");
-        pendingOwner = newOwner;
-        emit OwnershipTransferInitiated(owner(), pendingOwner);
-    }
-    // Function to confirm ownership transfer
-    function confirmOwnershipTransfer() external onlyPendingOwner {
-        _transferOwnership(pendingOwner);
-        pendingOwner = address(0); // Reset pending owner
     }
 }
